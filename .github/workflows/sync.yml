@@ -58,4 +58,9 @@ jobs:
             echo "Cloudflare Pages deploy hook is not configured." >&2
             exit 1
           fi
-          curl --fail --silent --show-error --max-time 30 --output /dev/null --request POST --data "" "$DEPLOY_HOOK"
+          response=$(mktemp)
+          trap 'rm -f "$response"' EXIT
+          if ! curl --fail-with-body --silent --show-error --max-time 30 --output "$response" --data "" "$DEPLOY_HOOK"; then
+            jq -r '.errors[]? | "Cloudflare error \(.code): \(.message)"' "$response"
+            exit 1
+          fi
